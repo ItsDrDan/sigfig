@@ -1,4 +1,8 @@
-# Sig Fig Sleuth: art to make in ChatGPT
+# Sig Fig Sleuth: art
+
+**Status (Nov 4, 2026):** all 15 badges, the logo and 5 mascot moods are in. Mascots live in `assets/mascot/sleuth-<idle|thinking|correct|oops|victory>.webp` (320 px). The study hub card image `games/assets/games/sigfig.webp` still needs to go in the games repo.
+
+## Original request
 
 **16 images total: 1 game logo + 15 badges.**
 
