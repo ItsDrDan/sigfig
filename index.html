@@ -980,7 +980,7 @@ const isMult = (v, step) => Math.abs(v / step - Math.round(v / step)) < 1e-6;
 // The magnified circle: a scale with ticks, labels and the liquid level / object end
 function zoomScale(o) {
   const { cx, cy, R, minor, label, value, topDown, horizontal, fill, min, max, unit } = o;
-  const span = o.span || minor * 10, ppu = (2 * R * 0.8) / span;
+  const span = o.span || Math.max(minor * 10, label * 1.5), ppu = (2 * R * 0.8) / span;
   // center between the two numbered marks around the value, so both numbers show
   let center = Math.floor(value / label) * label + label / 2;
   if (span > label * 1.6) center = value;
@@ -1070,6 +1070,13 @@ function instrumentSVG(full, zoomOpts, label) {
   t += `<text x="${cx}" y="${cy + R + 34}" text-anchor="middle" font-size="16" font-weight="700" fill="#7a8299">zoomed in</text>`;
   return t + '</svg>';
 }
+function twoZoomSVG(a, b, opts, labels, aria) {
+  let t = `<svg class="art lab" viewBox="0 0 700 400" role="img" aria-label="${aria}">`;
+  t += zoomScale({ cx: 178, cy: 186, R: 150, ...opts, value: a });
+  t += zoomScale({ cx: 522, cy: 186, R: 150, ...opts, value: b });
+  t += `<text x="178" y="376" text-anchor="middle" font-size="22" font-weight="800" fill="#4f5a74">${labels[0]}</text><text x="522" y="376" text-anchor="middle" font-size="22" font-weight="800" fill="#4f5a74">${labels[1]}</text>`;
+  return t + '</svg>';
+}
 function rulerSVG2(L) {
   let t = `<svg class="art lab" viewBox="0 0 600 430" role="img" aria-label="A ruler with a pink bar, and a zoomed-in view of where the bar ends">`;
   const x0 = 34, ppc = 52;
@@ -1110,12 +1117,13 @@ const GLASS = {
   cyl100: () => { let v = +(rint(120, 940) / 10).toFixed(1); if (Math.round(v * 10) % 10 === 0) v = +(v + 0.6).toFixed(1); return { v, dp: 1, tol: 0.2, unit: 'mL', smallest: '1 mL', name: '100 mL graduated cylinder', what: 'volume', svg: instrumentSVG(fullCylinder(100, v), { minor: 1, label: 10, value: v, fill: 'liquid', min: 0, max: 100, unit: 'mL' }, 'A 100 mL graduated cylinder with a zoomed-in view of the meniscus') }; },
   buret: () => { let v = +(rint(200, 4800) / 100).toFixed(2); if (Math.round(v * 100) % 10 === 0) v = +(v + 0.06).toFixed(2); return { v, dp: 2, tol: 0.02, unit: 'mL', smallest: '0.1 mL', name: '50 mL buret', what: 'buret reading', topDown: true, svg: instrumentSVG(fullBuret(v), { minor: 0.1, label: 1, value: v, fill: 'liquid', topDown: true, min: 0, max: 50, unit: 'mL' }, 'A 50 mL buret with a zoomed-in view of the meniscus. The numbers increase going down.') }; },
   thermo: () => { let v = +(rint(-50, 950) / 10).toFixed(1); if (Math.round(v * 10) % 10 === 0) v = +(v + 0.7).toFixed(1); return { v, dp: 1, tol: 0.2, unit: '°C', smallest: '1 °C', name: 'thermometer', what: 'temperature', svg: instrumentSVG(fullThermo(-10, 110, v), { minor: 1, label: 5, value: v, fill: 'mercury', min: -10, max: 110, unit: '°C' }, 'A thermometer with a zoomed-in view of the top of the red liquid') }; },
-  beaker: () => { let v = rint(14, 96); if (v % 10 === 0) v += 3; return { v, dp: 0, tol: 2, unit: 'mL', smallest: '10 mL', name: '100 mL beaker', what: 'approximate volume', svg: instrumentSVG(fullBeaker(100, v), { minor: 10, label: 20, span: 40, value: v, fill: 'liquid', min: 0, max: 100, unit: 'mL' }, 'A 100 mL beaker with a zoomed-in view of the liquid level') }; }
+  beaker: () => { const cap = pick([50, 100]); let v = rint(12, cap - 4); if (v % 10 === 0) v += 3; return { v, dp: 0, tol: 2, unit: 'mL', smallest: '10 mL', name: `${cap} mL beaker`, what: 'approximate volume', svg: instrumentSVG(fullBeaker(cap, v), { minor: 10, label: cap === 50 ? 10 : 20, span: 40, value: v, fill: 'liquid', min: 0, max: cap, unit: 'mL' }, `A ${cap} mL beaker with a zoomed-in view of the liquid level`) }; }
 };
 const PLACE = ['ones', 'tenths', 'hundredths', 'thousandths'];
 function genGlass(o = {}) {
-  const roll = o.type || pick(['ruler', 'cyl10', 'cyl50', 'cyl100', 'buret', 'buret', 'thermo', 'beaker', 'volumetric', 'compare']);
+  const roll = o.type || pick(['ruler', 'cyl10', 'cyl50', 'cyl100', 'cyl100', 'buret', 'buret', 'thermo', 'beaker', 'volumetric', 'delivered', 'displacement', 'compare']);
   if (roll === 'volumetric') return genVolumetric();
+  if (roll === 'delivered' || roll === 'displacement') return genDifference(roll);
   if (roll === 'compare') return genCompareTools();
   const g = GLASS[roll](), vStr = fmt(g.v, g.dp), sfN = sfOf(vStr.replace('-', ''));
   const certain = g.dp === 0 ? 'tens' : PLACE[g.dp - 1], est = PLACE[g.dp];
@@ -1134,7 +1142,7 @@ function genGlass(o = {}) {
       return { ok: false, slip: 'misread', note: `Right number of digits. Look again at the zoomed-in view: which two marks is the ${g.unit === 'cm' ? 'end of the bar' : g.unit === '°C' ? 'top of the red liquid' : 'bottom of the meniscus'} between?` };
     },
     answer: `${vStr} ${g.unit}`,
-    hint: `The smallest marks are ${g.smallest} apart. You are sure of the ${certain}; estimate the ${est}.`,
+    hint: g.topDown ? 'Start at the smaller number above the meniscus (like 46.‒‒ mL). Count the 0.1 mL lines down to the line just above the bottom of the meniscus, then estimate one more digit (like 46.82 mL).' : `The smallest lines are ${g.smallest} apart. You are sure of the ${certain}; estimate the ${est}.`,
     solution: `Marks every ${g.smallest} → certain to the ${certain}, estimate the ${est}. A good reading is <b>${vStr} ${g.unit}</b> (${plural(sfN, 'sig fig')}). Anything within ±${fmt(g.tol, g.dp)} ${g.unit} counts.`,
     steps: [
       { ask: 'How far apart are the smallest marks?', choices: shuffle(dedupeChoices([{ html: g.smallest, ok: true }, { html: g.smallest === '1 mL' || g.smallest === '1 °C' ? '0.1 ' + g.unit : g.smallest === '10 mL' ? '1 mL' : '1 ' + g.unit }, { html: g.smallest.startsWith('0.1') ? '0.01 ' + g.unit : g.smallest === '10 mL' ? '50 mL' : '10 ' + g.unit }])), why: 'Count how many spaces there are between two numbered lines.' },
@@ -1145,24 +1153,66 @@ function genGlass(o = {}) {
   };
 }
 function genVolumetric() {
-  const opts = [['pipet', 5, '0.01'], ['pipet', 10, '0.02'], ['pipet', 25, '0.03'], ['flask', 50, '0.05'], ['flask', 100, '0.08'], ['flask', 250, '0.12']];
+  const opts = [['pipet', 10, '0.02'], ['pipet', 10, '0.02'], ['pipet', 25, '0.03'], ['flask', 10, '0.02'], ['flask', 50, '0.05'], ['flask', 50, '0.05'], ['flask', 100, '0.08']];
   const [kind, cap, tol] = pick(opts), ans = cap.toFixed(2);
   return {
     topic: 'glass', tag: kind === 'pipet' ? 'Volumetric pipet' : 'Volumetric flask', kind: 'num', eq: '', art: volumetricSVG(kind, cap, tol), unit: 'mL', video: 'sf_intro',
-    prompt: `This volumetric ${kind} is filled exactly to its line. Use the tolerance printed on it (±${tol} mL) to record the volume.`,
+    prompt: `This ${cap} mL volumetric ${kind} is filled so the bottom of the meniscus is exactly on the etched line. Record the volume it ${kind === 'pipet' ? 'delivers' : 'holds'}.`,
     placeholder: 'Type the volume',
     check(raw) {
       const u = parseEntry(raw); if (!u || u.sci) return { ok: false, slip: 'format', note: 'Type a regular number.' };
-      if (decEq(u.d, dec(ans))) { if (u.dp === 2) return { ok: true }; return { ok: false, slip: 'volumetric-dp', note: `Right volume, but the ±${tol} mL means it is good to the <b>hundredths</b>. Show 2 decimal places.` }; }
-      return { ok: false, slip: 'other', note: `A volumetric ${kind} holds one exact volume: the number printed on it.` };
+      if (decEq(u.d, dec(ans))) { if (u.dp === 2) return { ok: true }; return { ok: false, slip: 'volumetric-dp', note: `Right volume, but volumetric glassware is accurate to <b>two decimal places</b>. Write ${ans} mL.` }; }
+      return { ok: false, slip: 'other', note: `A volumetric ${kind} measures only one volume: the one printed on it.` };
     },
-    answer: `${ans} mL`, hint: `The tolerance ±${tol} mL tells you the uncertainty is in the hundredths place.`,
-    solution: `Filled to the line, it ${kind === 'pipet' ? 'delivers' : 'contains'} ${cap} mL ± ${tol} mL. The uncertainty is in the hundredths, so record <b>${ans} mL</b> (${plural(sfOf(ans), 'sig fig')}).`,
+    answer: `${ans} mL`, hint: 'Volumetric glassware measures only one volume, very accurately: to two decimal places.',
+    solution: `A ${cap} mL volumetric ${kind} measures only ${cap} mL, accurate to two decimal places, so record <b>${ans} mL</b> (${plural(sfOf(ans), 'sig fig')}).`,
     steps: [
-      { ask: `Which place does the tolerance ±${tol} mL fall in?`, choices: [{ html: 'Hundredths', ok: true }, { html: 'Tenths' }, { html: 'Ones' }], why: `${tol} has its digit in the hundredths place, so the reading goes to the hundredths.` },
-      { ask: `Write ${cap} mL to 2 decimal places and type it above.`, final: true }
+      { ask: 'How many volumes can a volumetric flask or pipet measure?', choices: [{ html: 'Just one: the volume printed on it', ok: true }, { html: 'Any volume up to its size' }], why: 'It has one etched line, not a scale.' },
+      { ask: 'How many decimal places do you record for volumetric glassware?', choices: [{ html: 'Two (like 10.00 mL)', ok: true }, { html: 'One (like 10.0 mL)' }, { html: 'None (10 mL)' }], why: 'Volumetric glassware is accurate to two decimal places.' },
+      { ask: `Type the volume above.`, final: true }
     ],
     flags: { lab: 1 }
+  };
+}
+function genDifference(type) {
+  let a, b, dp, tol, opts, labels, prompt, name, aria, why;
+  if (type === 'delivered') {
+    a = +(rint(20, 950) / 100).toFixed(2); b = +(a + rint(1200, 3600) / 100).toFixed(2);
+    if (Math.round(a * 100) % 10 === 0) a = +(a + 0.03).toFixed(2); if (Math.round(b * 100) % 10 === 0) b = +(b + 0.06).toFixed(2);
+    dp = 2; tol = 0.03; opts = { minor: 0.1, label: 1, fill: 'liquid', topDown: true, min: 0, max: 50, unit: 'mL' };
+    labels = ['Initial buret reading', 'Final buret reading']; name = 'Buret: volume delivered';
+    prompt = 'Read both buret readings, then find the <b>volume delivered</b> (final − initial).'; aria = 'Zoomed-in views of a buret before and after a titration';
+    why = 'Volume delivered = final reading − initial reading. Both readings go to the hundredths, so the answer does too.';
+  } else {
+    const cap = pick([50, 100]); a = +(rint(150, cap === 50 ? 300 : 600) / 10).toFixed(1); b = +(a + rint(25, 120) / 10).toFixed(1);
+    if (Math.round(a * 10) % 10 === 0) a = +(a + 0.3).toFixed(1); if (Math.round(b * 10) % 10 === 0) b = +(b + 0.6).toFixed(1);
+    dp = 1; tol = 0.3; opts = { minor: 1, label: cap === 50 ? 5 : 10, fill: 'liquid', min: 0, max: cap, unit: 'mL' };
+    labels = ['Water only', 'Water + metal']; name = 'Volume by displacement';
+    prompt = `A metal sample is dropped into a ${cap} mL graduated cylinder of water. Read both levels and find the <b>volume of the metal</b>.`; aria = 'Zoomed-in views of a graduated cylinder before and after adding a metal sample';
+    why = 'Volume of the metal = (water + metal) − (water only). Both readings go to the tenths, so the answer does too.';
+  }
+  const diff = +(b - a).toFixed(dp), ans = diff.toFixed(dp);
+  return {
+    topic: 'glass', tag: name, kind: 'num', eq: '', art: twoZoomSVG(a, b, opts, labels, aria), unit: 'mL', video: 'calc_add',
+    prompt, placeholder: 'Type the volume',
+    check(raw) {
+      const u = parseEntry(raw); if (!u || u.sci) return { ok: false, slip: 'format', note: 'Type a regular number.' };
+      const v = toNum(u.d);
+      if (u.dp === dp && Math.abs(v - diff) <= tol + 1e-9) return { ok: true, note: Math.abs(v - diff) > 1e-9 ? `Your readings are close to ${a.toFixed(dp)} and ${b.toFixed(dp)} mL, which give ${ans} mL. Small differences in the estimated digit are fine.` : '' };
+      if (Math.abs(v - diff) <= tol + 1e-9) return { ok: false, slip: 'precision', note: `Right idea. Keep ${plural(dp, 'decimal place')}: each reading goes to the ${PLACE[dp]}.` };
+      if (Math.abs(v - (a + b)) < tol * 3) return { ok: false, slip: 'added', note: 'Subtract the two readings instead of adding them.' };
+      if (Math.abs(v - b) <= tol || Math.abs(v - a) <= tol) return { ok: false, slip: 'one-reading', note: 'That is just one reading. Subtract: final − initial.' };
+      return { ok: false, slip: 'misread', note: 'Recheck both readings in the zoomed-in views, then subtract.' };
+    },
+    answer: `${ans} mL`,
+    hint: type === 'delivered' ? 'Buret numbers increase going down. Read each meniscus to the hundredths, then do final − initial.' : 'Read each level to the tenths at the bottom of the meniscus, then subtract.',
+    solution: `Readings: <b>${a.toFixed(dp)} mL</b> and <b>${b.toFixed(dp)} mL</b>. ${b.toFixed(dp)} − ${a.toFixed(dp)} = <b>${ans} mL</b>. ${why}`,
+    steps: [
+      { ask: `What is the ${labels[0].toLowerCase()}?`, choices: shuffle([{ html: a.toFixed(dp) + ' mL', ok: true }, { html: (a + (type === 'delivered' ? 0.1 : 1)).toFixed(dp) + ' mL' }, { html: a.toFixed(dp - 1 < 0 ? 0 : dp - 1) + ' mL' }].filter((c, i, arr) => arr.findIndex(x => x.html === c.html) === i)), why: 'One digit past the smallest lines.' },
+      { ask: `What is the ${labels[1].toLowerCase()}?`, choices: shuffle([{ html: b.toFixed(dp) + ' mL', ok: true }, { html: (b - (type === 'delivered' ? 0.1 : 1)).toFixed(dp) + ' mL' }, { html: b.toFixed(dp - 1 < 0 ? 0 : dp - 1) + ' mL' }].filter((c, i, arr) => arr.findIndex(x => x.html === c.html) === i)), why: 'One digit past the smallest lines.' },
+      { ask: 'Now subtract (second − first) and type the answer above.', final: true }
+    ],
+    flags: { lab: 1, rule: 'dp' }
   };
 }
 function genCompareTools() {
@@ -1189,7 +1239,7 @@ function lcd(text, unit, kind, caption) {
     t += `<path d="M90 104 L510 104 L540 270 L60 270 Z" fill="#f1f3f8" stroke="#9aa9c2" stroke-width="3"/>`;
     t += `<rect x="150" y="140" width="300" height="86" rx="10" fill="#1f2a44"/><rect x="160" y="150" width="280" height="66" rx="6" fill="#c9f2d9"/>`;
     t += `<circle cx="130" cy="248" r="10" fill="#f28aa3"/><text x="150" y="254" font-size="15" font-weight="800" fill="#4f5a74">TARE</text><circle cx="470" cy="248" r="10" fill="#9fb0ff"/><text x="428" y="254" font-size="15" font-weight="800" fill="#4f5a74">ON</text>`;
-    t += `<text x="400" y="200" text-anchor="end" font-family="'Courier New',ui-monospace,monospace" font-size="46" font-weight="700" fill="#1f3b2b" letter-spacing="3">${text}</text><text x="410" y="200" font-size="26" font-weight="800" fill="#1f3b2b">${unit}</text>`;
+    t += `<text x="400" y="200" text-anchor="end" font-family="'Courier New',ui-monospace,monospace" font-size="${text.length > 7 ? 40 : 46}" font-weight="700" fill="#1f3b2b" letter-spacing="2">${text}</text><text x="410" y="200" font-size="26" font-weight="800" fill="#1f3b2b">${unit}</text>`;
   } else if (kind === 'thermo') {
     t += `<rect x="70" y="60" width="300" height="130" rx="34" fill="#eef0fe" stroke="#9aa9c2" stroke-width="3"/><rect x="370" y="112" width="190" height="26" rx="13" fill="#c9d2e3" stroke="#9aa9c2" stroke-width="2"/>`;
     t += `<rect x="100" y="86" width="230" height="78" rx="8" fill="#1f2a44"/><rect x="108" y="94" width="214" height="62" rx="5" fill="#c9f2d9"/>`;
@@ -1203,7 +1253,7 @@ function lcd(text, unit, kind, caption) {
 }
 function balanceReading(dp) {
   for (let i = 0; i < 50; i++) {
-    const v = chance(0.25) ? rint(1, 999) / Math.pow(10, dp + 1) * 10 : rint(100, 99999) / Math.pow(10, dp);
+    const v = chance(0.25) ? rint(10, 9999) / Math.pow(10, dp) : rint(10000, 999999) / Math.pow(10, dp);
     let s = v.toFixed(dp); if (chance(0.45)) s = s.slice(0, -1) + '0';
     if (/[1-9]/.test(s) && Number(s) < 400) return s;
   }
@@ -1215,7 +1265,7 @@ function genDigital(o = {}) {
   let text, unit, kind, caption, name;
   if (v === 'thermo') { text = (rint(150, 420) / 10).toFixed(1); if (chance(0.4)) text = text.slice(0, -1) + '0'; unit = '°C'; kind = 'thermo'; caption = 'A digital thermometer'; name = 'digital thermometer'; }
   else if (v === 'stopwatch') { const sec = (rint(250, 5999) / 100).toFixed(2); text = (sec.length < 5 ? '0' : '') + sec; text = '0:' + text.padStart(5, '0'); unit = 's'; kind = 'stopwatch'; caption = 'A stopwatch'; name = 'stopwatch'; }
-  else { const dp = pick([2, 3, 3]); text = balanceReading(dp); unit = 'g'; kind = 'balance'; caption = dp === 3 ? 'An analytical balance' : 'A top-loading balance'; name = dp === 3 ? 'analytical balance' : 'top-loading balance'; }
+  else { text = balanceReading(4); unit = 'g'; kind = 'balance'; caption = 'An analytical balance'; name = 'analytical balance'; }
   const value = kind === 'stopwatch' ? String(Number(text.split(':')[1]).toFixed(2)) : text;
   const sfN = sfOf(value), art = lcd(text, unit === 's' ? '' : unit, kind, caption), d = dec(value);
   if (v === 'count') {
@@ -1247,10 +1297,10 @@ function genDigital(o = {}) {
   };
 }
 function genMassDiff() {
-  const dp = pick([2, 3]), empty = (rint(25000, 60000) / 1000).toFixed(dp), sample = (rint(1200, 30000) / 1000).toFixed(dp);
+  const dp = 4, empty = (rint(250000, 600000) / 10000).toFixed(dp), sample = (rint(12000, 300000) / 10000).toFixed(dp);
   const full = decStr(dAdd(dec(empty), dec(sample)));
   const diff = dSub(dec(full), dec(empty)), ans = decStr(roundDP(diff, dp));
-  const name = dp === 3 ? 'analytical balance' : 'top-loading balance';
+  const name = 'analytical balance';
   const art = `<div class="lab-pair"><figure>${lcd(empty, 'g', 'balance', 'Empty beaker on a balance')}<figcaption>Empty beaker</figcaption></figure><figure>${lcd(full, 'g', 'balance', 'Beaker plus sample on a balance')}<figcaption>Beaker + sample</figcaption></figure></div>`;
   return {
     topic: 'digital', tag: 'Mass by difference', kind: 'num', eq: '', art, unit: 'g', video: 'calc_add',
@@ -1595,8 +1645,8 @@ function renderRules() {
    <div class="rule"><h3>+ and −</h3><p>Answer gets the <b>fewest decimal places</b>.<br>12.11 g + 3.2 g = 15.31 → <b>15.3 g</b></p></div>
    <div class="rule"><h3>Rounding</h3><p>Next digit <b>5 or more → round up</b>, 4 or less → keep. Keep placeholder zeros: 12,345 to 2 sig figs = <b>12,000</b>.</p></div>
    <div class="rule"><h3>Multi-step</h3><p>Note each step’s sig figs, keep all calculator digits, and <b>round once at the end</b>.</p></div>
-   <div class="rule wide"><h3>Glassware and rulers</h3><p>Write every certain digit plus <b>one estimated digit</b>. Marks every 0.1 mL → read to 0.01 mL (like 24.36 mL). Read the <b>bottom of the meniscus</b> at eye level. Buret numbers increase going <b>down</b>. Volumetric glassware: use the printed tolerance (±0.03 mL → 25.00 mL).</p></div>
-   <div class="rule wide"><h3>Digital equipment</h3><p>Record <b>every digit shown</b>, including zeros at the end: a balance reading 12.040 g has 5 sig figs. Don’t add an extra digit.</p></div>
+   <div class="rule wide"><h3>Glassware and rulers</h3><p>Write every certain digit plus <b>one estimated digit</b>. Marks every 0.1 mL → read to 0.01 mL (like 24.36 mL). Read the <b>bottom of the meniscus</b> at eye level. Buret numbers increase going <b>down</b>. Volumetric flasks and pipets measure one volume, to two decimal places (10.00 mL). Volume delivered = final − initial buret reading.</p></div>
+   <div class="rule wide"><h3>Digital equipment</h3><p>Record <b>every digit shown</b>, including zeros at the end: an analytical balance reading 12.0400 g has 6 sig figs. Don’t add an extra digit.</p></div>
    <div class="rule wide"><h3>Accuracy vs precision</h3><p><b>Precise</b> = results close to each other. <b>Accurate</b> = close to the true value. Results can be both, either one, or neither.</p></div></div>`;
 }
 
