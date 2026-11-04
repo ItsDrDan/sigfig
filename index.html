@@ -169,7 +169,7 @@ dialog{border:0;border-radius:18px;box-shadow:0 24px 80px #14173855;padding:0;wi
 /* toasts + confetti */
 .toasts{position:fixed;right:16px;bottom:16px;z-index:1100;display:grid;gap:9px;max-width:min(340px,calc(100vw - 32px))}
 .toast{display:flex;gap:11px;align-items:center;background:#fff;border:1px solid #ddd6f7;border-radius:14px;padding:10px 13px;box-shadow:0 12px 34px #1f2a4430;font-size:.92rem;transition:opacity .5s,transform .5s}.toast img{width:42px;height:42px}.toast.out{opacity:0;transform:translateY(10px)}
-#confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:1000;pointer-events:none}
+#celebrationCanvas{position:fixed;inset:0;width:100vw;height:100vh;z-index:1000;pointer-events:none}
 .foot{text-align:center;font-size:.82rem;color:var(--faint);margin:18px 0 6px}
 
 @media(max-width:760px){
@@ -229,13 +229,27 @@ dialog{border:0;border-radius:18px;box-shadow:0 24px 80px #14173855;padding:0;wi
 @media(max-width:760px){.sleuth{width:64px;height:64px}.intro img{width:84px;height:84px}}
 @media(prefers-reduced-motion:reduce){.sleuth{animation:none!important}}
 
+/* phone polish */
+.tapper .digits{display:flex;flex-wrap:nowrap;align-items:flex-end;gap:4px}
+@media(max-width:760px){
+ .answer{gap:8px}.answer input{flex:1 1 0;min-width:0}.answer .unit{flex:none;font-size:1.05rem}.answer .btn.primary{flex:1 1 100%}
+ .tapper .digit{min-width:0;width:min(42px,calc((100vw - 96px) / var(--n)));height:56px;font-size:clamp(1.2rem,6vw,1.7rem);padding:0}
+ .tapper .pt{font-size:1.8rem}.tapper .rest{font-size:1.2rem;padding-bottom:12px}
+ .actions .btn{white-space:nowrap;font-size:.95rem;padding:10px 8px}
+ .pair-zoom{grid-template-columns:1fr}
+}
+.pair-zoom{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:640px;margin:0 auto}.pair-zoom figure{margin:0;text-align:center}.pair-zoom figcaption{font-weight:800;color:var(--muted);margin-top:-4px}.pair-zoom svg{width:100%;height:auto;display:block}
+@media(max-width:760px){html{scroll-padding-top:8px}}
+html.dd-embedded{scroll-padding-top:8px}
+@media(max-width:560px){.pair-zoom{grid-template-columns:1fr;max-width:340px}}
+
 </style>
 <script src="https://itsdrdan.github.io/games/track.js" defer></script>
 <link rel="stylesheet" href="https://itsdrdan.github.io/games/brand/itsdrdan.css">
 <script src="https://itsdrdan.github.io/games/brand/icons.js" defer></script>
 <script src="https://itsdrdan.github.io/games/brand/embed.js" defer></script>
 </head>
-<body><canvas id="confetti" aria-hidden="true" hidden></canvas><div class="toasts" id="toasts" aria-live="polite"></div>
+<body><canvas id="celebrationCanvas" aria-hidden="true" hidden></canvas><div class="toasts" id="toasts" aria-live="polite"></div>
 <header class="topbar"><div class="tb">
  <div class="tb-brand"><img src="assets/mascot/sleuth-idle.webp" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20120%20120%22%20role%3D%22img%22%20aria-label%3D%22Sig%20Fig%20Sleuth%20logo%3A%20a%20magnifying%20glass%20showing%20the%20significant%20digits%20of%200.0450%22%3E%0A%3Cdefs%3E%0A%3CradialGradient%20id%3D%22bg%22%20cx%3D%2250%25%22%20cy%3D%2240%25%22%20r%3D%2265%25%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23f6f4ff%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23e4e8ff%22%2F%3E%3C%2FradialGradient%3E%0A%3ClinearGradient%20id%3D%22rim%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23ff9fbd%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23d9577f%22%2F%3E%3C%2FlinearGradient%3E%0A%3ClinearGradient%20id%3D%22hand%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%237c87f0%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%234b57d1%22%2F%3E%3C%2FlinearGradient%3E%0A%3CradialGradient%20id%3D%22lens%22%20cx%3D%2240%25%22%20cy%3D%2235%25%22%20r%3D%2270%25%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23ffffff%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23e3f6ee%22%2F%3E%3C%2FradialGradient%3E%0A%3C%2Fdefs%3E%0A%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%22112%22%20height%3D%22112%22%20rx%3D%2228%22%20fill%3D%22url%28%23bg%29%22%2F%3E%0A%3Ctext%20x%3D%2212%22%20y%3D%2298%22%20font-family%3D%22Fredoka%2CNunito%2CArial%2Csans-serif%22%20font-weight%3D%22700%22%20font-size%3D%2217%22%20fill%3D%22%23b9bfd9%22%3E0.0%3C%2Ftext%3E%0A%3Cpath%20d%3D%22M77%2077%20L101%20101%22%20stroke%3D%22url%28%23hand%29%22%20stroke-width%3D%2215%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3Cpath%20d%3D%22M80%2080%20L99%2099%22%20stroke%3D%22%23ffffff%22%20stroke-opacity%3D%22.35%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3Ccircle%20cx%3D%2254%22%20cy%3D%2254%22%20r%3D%2233%22%20fill%3D%22url%28%23lens%29%22%20stroke%3D%22url%28%23rim%29%22%20stroke-width%3D%229%22%2F%3E%0A%3Ctext%20x%3D%2254%22%20y%3D%2264%22%20text-anchor%3D%22middle%22%20font-family%3D%22Fredoka%2CNunito%2CArial%2Csans-serif%22%20font-weight%3D%22700%22%20font-size%3D%2229%22%20fill%3D%22%2323704f%22%3E450%3C%2Ftext%3E%0A%3Cpath%20d%3D%22M33%2040%20Q40%2028%2054%2026%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20fill%3D%22none%22%20opacity%3D%22.9%22%2F%3E%0A%3Ccircle%20cx%3D%2293%22%20cy%3D%2224%22%20r%3D%225%22%20fill%3D%22%23ffd36b%22%2F%3E%3Ccircle%20cx%3D%22104%22%20cy%3D%2238%22%20r%3D%223%22%20fill%3D%22%239fe0c4%22%2F%3E%0A%3C%2Fsvg%3E%0A'" alt="">Sig Fig Sleuth</div>
  <div class="seg" id="course" role="group" aria-label="Course"><button type="button" data-course="3A">CHEM 3A</button><button type="button" data-course="1A">CHEM 1A</button></div>
@@ -1089,11 +1103,8 @@ function instrumentSVG(full, zoomOpts, label) {
   return t + '</svg>';
 }
 function twoZoomSVG(a, b, opts, labels, aria) {
-  let t = `<svg class="art lab" viewBox="0 0 700 400" role="img" aria-label="${aria}">`;
-  t += zoomScale({ cx: 178, cy: 186, R: 150, ...opts, value: a });
-  t += zoomScale({ cx: 522, cy: 186, R: 150, ...opts, value: b });
-  t += `<text x="178" y="376" text-anchor="middle" font-size="22" font-weight="800" fill="#4f5a74">${labels[0]}</text><text x="522" y="376" text-anchor="middle" font-size="22" font-weight="800" fill="#4f5a74">${labels[1]}</text>`;
-  return t + '</svg>';
+  const one = (v, lab) => `<figure><svg viewBox="0 0 340 340" role="img" aria-label="${aria}: ${lab}">${zoomScale({ cx: 170, cy: 170, R: 150, ...opts, value: v })}</svg><figcaption>${lab}</figcaption></figure>`;
+  return `<div class="pair-zoom">${one(a, labels[0])}${one(b, labels[1])}</div>`;
 }
 function rulerSVG2(L) {
   let t = `<svg class="art lab" viewBox="0 0 600 430" role="img" aria-label="A ruler with a pink bar, and a zoomed-in view of where the bar ends">`;
@@ -1542,7 +1553,7 @@ function newQuestion(focus) {
   setVideoFor(q.video || T.video); $('videoBtn').hidden = q.topic === 'equipment';
   renderChooser(); paintIcons($('play'));
   setMood('idle');
-  if (focus && !isChoice && !isTap) { try { inp.focus({ preventScroll: true }); } catch (e) {} }
+  if (focus && !isChoice && !isTap && !coarse()) { try { inp.focus({ preventScroll: true }); } catch (e) {} }
 }
 function typingNote(q) {
   if (q.topic === 'count' || q.topic === 'exact') return 'For an exact number, type <b>oo</b> (that means ∞).';
@@ -1553,7 +1564,7 @@ function typingNote(q) {
   return t;
 }
 function tapperHTML(q) {
-  let h = '<div class="tapper" role="group" aria-label="Digits: tap the significant ones">';
+  let h = `<div class="tapper" role="group" aria-label="Digits: tap the significant ones" style="--n:${q.tapChars.length}">`;
   q.tapChars.forEach((x, i) => { h += x.k === 'pt' ? `<span class="pt">.</span>` : `<button type="button" class="digit" data-tap="${i}" aria-pressed="false">${x.c}</button>`; });
   if (q.exp != null) { h += `<span class="rest">× 10<sup>${supExp(q.exp)}</sup></span>`; const u2 = String(q.eq).match(/<\/sup>\s(.+)$/); if (u2) h += `<span class="rest">${u2[1]}</span>`; }
   else { const unit = String(q.eq).match(/\s([^\s<]+)$/); if (unit) h += `<span class="rest">${unit[1]}</span>`; }
@@ -1625,7 +1636,7 @@ function finishQuestion() {
   if (state.q.kind === 'choice') document.querySelectorAll('#choices .choice').forEach((b, i) => { b.disabled = true; if (state.q.choices[i].ok) b.classList.add('right'); });
   $('nextBtn').hidden = false;
   $('nextBtn').innerHTML = (state.quiz && state.quiz.i === state.quiz.plan.length - 1 ? 'See my results ' : 'Next question ') + ico('arrow');
-  try { $('nextBtn').focus({ preventScroll: true }); } catch (e) {}
+  if (!coarse()) { try { $('nextBtn').focus({ preventScroll: true }); } catch (e) {} }
 }
 function setFeedback(kind, html) { const f = $('feedback'); f.className = 'feedback ' + kind; f.innerHTML = html; }
 function showSolution() {
@@ -1636,9 +1647,18 @@ function showSolution() {
     setFeedback('info', `<b>Answer: ${q.answer}</b><div class="sol">${q.solution}</div>`); finishQuestion();
   }
 }
+const coarse = () => { try { return matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } };
+function scrollToQuestion() {
+  const el = $('play'), r = el.getBoundingClientRect();
+  const embedded = document.documentElement.classList.contains('dd-embedded');
+  // In Canvas the frame is as tall as the page, so always ask the browser to bring the question into view
+  if (embedded || r.top < 0 || r.top > innerHeight * 0.35) {
+    try { el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); } catch (e) { el.scrollIntoView(); }
+  }
+}
 function next() {
-  if (state.quiz) { state.quiz.i++; if (state.quiz.i >= state.quiz.plan.length) return showReport(); }
-  newQuestion(true);
+  if (state.quiz) { state.quiz.i++; if (state.quiz.i >= state.quiz.plan.length) { showReport(); scrollToQuestion(); return; } }
+  newQuestion(true); scrollToQuestion();
 }
 
 /* ---------- step by step ---------- */
@@ -1698,7 +1718,7 @@ function toast(art, fb, title, text) {
 }
 function confetti() {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const c = $('confetti'), x = c.getContext('2d'); c.hidden = false; c.width = innerWidth; c.height = innerHeight;
+  const c = $('celebrationCanvas'), x = c.getContext('2d'); c.hidden = false; c.width = innerWidth; c.height = innerHeight;
   const cols = ['#4b57d1', '#72c9a8', '#f28aa3', '#ffd36b', '#9fb0ff'];
   const ps = Array.from({ length: 90 }, () => ({ x: Math.random() * c.width, y: -20 - Math.random() * c.height * 0.3, vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 3, r: 4 + Math.random() * 4, c: pick(cols), a: Math.random() * 6 }));
   let f = 0; (function step() { x.clearRect(0, 0, c.width, c.height); ps.forEach(p => { p.x += p.vx; p.y += p.vy; p.a += 0.1; x.fillStyle = p.c; x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.fillRect(-p.r, -p.r / 2, p.r * 2, p.r); x.restore(); }); if (++f < 110) requestAnimationFrame(step); else { x.clearRect(0, 0, c.width, c.height); c.hidden = true; } })();
@@ -1744,7 +1764,7 @@ function bind() {
   });
   $('skillCard').onclick = () => { startQuiz(); scrollToPlay(); };
   $('checkBtn').onclick = check; $('nextBtn').onclick = next;
-  $('skipBtn').onclick = () => { if (state.quiz && !state.done) return showSolution(); if (state.quiz) return next(); newQuestion(true); };
+  $('skipBtn').onclick = () => { if (state.quiz && !state.done) return showSolution(); if (state.quiz) return next(); newQuestion(true); scrollToQuestion(); };
   $('answer').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); state.done ? next() : check(); } });
   $('answer').addEventListener('focus', () => { if (!state.done && $('sleuth').dataset.mood === 'idle') setMood('thinking'); });
   $('hintBtn').onclick = () => { if (!state.q) return; state.helped = true; setMood('thinking'); const h = $('hintBox'); h.hidden = false; h.innerHTML = `<b>Hint:</b> ${state.q.hint}`; };
