@@ -386,6 +386,8 @@ function cleanTyped(raw) {
 }
 const INF_WORDS = ['oo', '∞', 'inf', 'infinity', 'infinite', 'exact'];
 const isInfWord = raw => INF_WORDS.includes(cleanTyped(raw));
+// "2,5" or "0,125" is a decimal comma, not a thousands separator ("1,200" still means 1200)
+const isCommaDecimal = raw => /^[+-]?(?:\d+,\d{1,2}|0,\d+)(?![\d,])/.test(String(raw).trim().replace(/[−–—]/g, '-'));
 // sig figs a written number shows (no decimal point → trailing zeros are placeholders)
 function sfOfDigits(whole, dot, frac) {
   let d = (whole + frac).replace(/^0+/, '');
@@ -1577,6 +1579,7 @@ function check() {
   if (q.kind === 'tap') return checkTap();
   const raw = $('answer').value;
   if (!raw.trim()) { setFeedback('info', 'Type an answer first.'); return; }
+  if (isCommaDecimal(raw)) { setFeedback('info', 'Use a period for decimals (2.5), not a comma.'); return; }
   const res = q.check(raw); grade(res.ok, res.slip, res.note);
 }
 function checkTap() {
